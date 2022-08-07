@@ -9,7 +9,7 @@ BOOL func_init(AviUtl::FilterPlugin* fp)
 
 	g_auin.initExEditAddress();
 
-	fp->exfunc->add_menu_item(fp, "テキストオブジェクトを分解する",
+	fp->exfunc->add_menu_item(fp, "アイテムをずらす",
 		fp->hwnd, Check::BuildStairs, 0, AviUtl::ExFunc::AddMenuItemFlag::None);
 
 	return TRUE;
@@ -65,7 +65,7 @@ LPCSTR track_name[] =
 	"ﾌﾚｰﾑ",
 };
 
-int track_def[] = {  1,     0 };
+int track_def[] = {  1,     1 };
 int track_min[] = {  0, -6000 };
 int track_max[] = { 10, +6000 };
 
@@ -79,7 +79,7 @@ int check_def[] = { -1 };
 EXTERN_C AviUtl::FilterPluginDLL* CALLBACK GetFilterTable()
 {
 	LPCSTR name = "アイテムずらし";
-	LPCSTR information = "アイテムずらし 1.0.0 by 蛇色";
+	LPCSTR information = "アイテムずらし 1.0.1 by 蛇色";
 
 	static AviUtl::FilterPluginDLL filter =
 	{

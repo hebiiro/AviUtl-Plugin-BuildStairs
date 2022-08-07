@@ -9,7 +9,6 @@ struct Mover
 	ExEdit::Object* m_object;
 	int m_frame_begin;
 	int m_frame_end;
-	BOOL m_isIntersect;
 };
 
 //--------------------------------------------------------------------

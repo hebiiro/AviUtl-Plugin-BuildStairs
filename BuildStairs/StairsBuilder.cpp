@@ -61,7 +61,7 @@ BOOL StairsBuilder::getMoverMap()
 		int frame_begin = object->frame_begin + stairFrame * stairStep;
 		int frame_end = object->frame_end + stairFrame * stairStep;
 
-		m_moverMap[object] = Mover(i, objectIndex, object, frame_begin, frame_end, FALSE);
+		m_moverMap[object] = Mover(i, objectIndex, object, frame_begin, frame_end);
 
 		stairStep++;
 	}
@@ -71,11 +71,18 @@ BOOL StairsBuilder::getMoverMap()
 
 int StairsBuilder::checkMoverMap()
 {
-	int retValue = 0;
+	int invalidCount = 0;
 
 	for (auto& value : m_moverMap)
 	{
 		Mover& mover = value.second;
+
+		if (mover.m_frame_begin < 0)
+		{
+			// mover が範囲外になっている。
+			invalidCount++;
+			continue;
+		}
 
 		// オブジェクトの数を取得する。
 		int c = g_auin.GetCurrentSceneObjectCount();
@@ -116,13 +123,12 @@ int StairsBuilder::checkMoverMap()
 				continue; // object が mover より完全に後ろにあるのでスキップする。
 
 			// object と mover は重なっている。
-			mover.m_isIntersect = TRUE;
-			retValue++;
+			invalidCount++;
 			break;
 		}
 	}
 
-	return retValue;
+	return invalidCount;
 }
 
 //--------------------------------------------------------------------
@@ -145,14 +151,14 @@ BOOL StairsBuilder::buildStairs()
 
 	// オブジェクトを動かせるかチェックする。
 
-	int intersectCount = checkMoverMap();
+	int invalidCount = checkMoverMap();
 
 	// オブジェクトが重なっていて動かせないなら
-	if (intersectCount)
+	if (invalidCount)
 	{
 		// エラーメッセージを出して終了する。
 		TCHAR text[MAX_PATH] = {};
-		::StringCbPrintf(text, sizeof(text), _T("%d 個のアイテムが他のアイテムと重なって動かせません"), intersectCount);
+		::StringCbPrintf(text, sizeof(text), _T("%d 個のアイテムの位置が無効で動かせません"), invalidCount);
 		::MessageBox(m_fp->hwnd, text, _T("BuildStairs"), MB_OK | MB_ICONWARNING);
 
 		return FALSE;
@@ -169,7 +175,6 @@ BOOL StairsBuilder::buildStairs()
 	for (auto& value : m_moverMap)
 	{
 		const Mover& mover = value.second;
-		if (mover.m_isIntersect) continue;
 		int objectIndex = mover.m_objectIndex;
 
 		g_auin.CreateUndo(objectIndex, 8);
@@ -180,7 +185,6 @@ BOOL StairsBuilder::buildStairs()
 	for (auto& value : m_moverMap)
 	{
 		const Mover& mover = value.second;
-		if (mover.m_isIntersect) continue;
 		ExEdit::Object* object = mover.m_object;
 
 		object->frame_begin = mover.m_frame_begin;
