@@ -4,7 +4,7 @@
 
 struct Mover
 {
-	int m_moverIndex;
+	int m_stairStep;
 	int m_objectIndex;
 	ExEdit::Object* m_object;
 	int m_frame_begin;

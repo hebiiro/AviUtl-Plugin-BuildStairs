@@ -58,10 +58,41 @@ BOOL StairsBuilder::getMoverMap()
 		MY_TRACE_HEX(object);
 		if (!object) continue;
 
-		int frame_begin = object->frame_begin + stairFrame * stairStep;
-		int frame_end = object->frame_end + stairFrame * stairStep;
+		if (m_moverMap.find(object) != m_moverMap.end())
+			continue; // すでに mover が作成済みならスキップする。
 
-		m_moverMap[object] = Mover(i, objectIndex, object, frame_begin, frame_end);
+		int midptLeader = object->index_midpt_leader;
+		MY_TRACE_INT(midptLeader);
+		if (midptLeader >= 0)
+		{
+			objectIndex = midptLeader; // 中間点がある場合は中間点元のオブジェクト ID を取得
+
+			while (objectIndex >= 0)
+			{
+				// オブジェクトを取得する。
+				ExEdit::Object* object = g_auin.GetObject(objectIndex);
+				MY_TRACE_HEX(object);
+				if (!object) break;
+
+				int midptLeader2 = object->index_midpt_leader;
+				MY_TRACE_INT(midptLeader2);
+				if (midptLeader2 != midptLeader) break;
+
+				int frame_begin = object->frame_begin + stairFrame * stairStep;
+				int frame_end = object->frame_end + stairFrame * stairStep;
+
+				m_moverMap[object] = Mover(stairStep, objectIndex, object, frame_begin, frame_end);
+
+				objectIndex = g_auin.GetNextObjectIndex(objectIndex);
+			}
+		}
+		else
+		{
+			int frame_begin = object->frame_begin + stairFrame * stairStep;
+			int frame_end = object->frame_end + stairFrame * stairStep;
+
+			m_moverMap[object] = Mover(stairStep, objectIndex, object, frame_begin, frame_end);
+		}
 
 		stairStep++;
 	}
