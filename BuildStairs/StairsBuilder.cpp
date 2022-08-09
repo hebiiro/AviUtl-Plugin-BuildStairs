@@ -36,13 +36,41 @@ BOOL StairsBuilder::playVoice(int voice)
 	return TRUE;
 }
 
-BOOL StairsBuilder::getMoverMap()
+BOOL StairsBuilder::createMoverMap(int command)
 {
 	int stairFrame = m_fp->track[Track::Frame];
 
 	// 選択オブジェクトの数を取得する。
 	int c = g_auin.GetSelectedObjectCount();
 	MY_TRACE_INT(c);
+
+	if (!c)
+		return FALSE;
+
+	int arrangeFrame = 0;
+
+	if (command == Check::Arrange)
+	{
+		int objectIndex = g_auin.GetSelectedObject(0);
+		MY_TRACE_INT(objectIndex);
+		if (objectIndex < 0) return FALSE;
+
+		ExEdit::Object* object = g_auin.GetObject(objectIndex);
+		MY_TRACE_HEX(object);
+		if (!object) return FALSE;
+
+		int midptLeader = object->index_midpt_leader;
+		MY_TRACE_INT(midptLeader);
+		if (midptLeader >= 0)
+			objectIndex = midptLeader; // 中間点がある場合は中間点元のオブジェクト ID を取得
+
+		// オブジェクトを取得する。
+		object = g_auin.GetObject(objectIndex);
+		MY_TRACE_HEX(object);
+		if (!object) return FALSE;
+
+		arrangeFrame = object->frame_begin;
+	}
 
 	int stairStep = 0;
 
@@ -81,6 +109,12 @@ BOOL StairsBuilder::getMoverMap()
 				int frame_begin = object->frame_begin + stairFrame * stairStep;
 				int frame_end = object->frame_end + stairFrame * stairStep;
 
+				if (command == Check::Arrange)
+				{
+					frame_begin = arrangeFrame;
+					frame_end = arrangeFrame + object->frame_end - object->frame_begin;
+				}
+
 				m_moverMap[object] = Mover(stairStep, objectIndex, object, frame_begin, frame_end);
 
 				objectIndex = g_auin.GetNextObjectIndex(objectIndex);
@@ -90,6 +124,12 @@ BOOL StairsBuilder::getMoverMap()
 		{
 			int frame_begin = object->frame_begin + stairFrame * stairStep;
 			int frame_end = object->frame_end + stairFrame * stairStep;
+
+			if (command == Check::Arrange)
+			{
+				frame_begin = arrangeFrame;
+				frame_end = arrangeFrame + object->frame_end - object->frame_begin;
+			}
 
 			m_moverMap[object] = Mover(stairStep, objectIndex, object, frame_begin, frame_end);
 		}
@@ -164,11 +204,11 @@ int StairsBuilder::checkMoverMap()
 
 //--------------------------------------------------------------------
 
-BOOL StairsBuilder::buildStairs()
+BOOL StairsBuilder::buildStairs(int command)
 {
 	// オブジェクトを動かしたあとの状態を構築する。
 
-	getMoverMap();
+	createMoverMap(command);
 
 	if (m_moverMap.empty())
 	{
@@ -197,7 +237,8 @@ BOOL StairsBuilder::buildStairs()
 
 	// 声で知らせる。
 
-	playVoice(m_fp->track[Track::Voice]);
+	if (command == Check::BuildStairs)
+		playVoice(m_fp->track[Track::Voice]);
 
 	// 実際にオブジェクトを動かす。
 

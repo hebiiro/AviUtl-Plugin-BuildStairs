@@ -26,9 +26,9 @@ public:
 
 	StairsBuilder(AviUtl::EditHandle* editp, AviUtl::FilterPlugin* fp);
 
-	BOOL buildStairs();
+	BOOL buildStairs(int command);
 	BOOL playVoice(int voice);
-	BOOL getMoverMap();
+	BOOL createMoverMap(int command);
 	int checkMoverMap();
 };
 
