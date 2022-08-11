@@ -4,14 +4,28 @@
 
 //--------------------------------------------------------------------
 
-StairsBuilder::StairsBuilder(AviUtl::EditHandle* editp, AviUtl::FilterPlugin* fp)
+StairsBuilder::StairsBuilder(AviUtl::EditHandle* editp, AviUtl::FilterPlugin* fp, int command)
 {
 	m_editp = editp;
 	m_fp = fp;
+	m_command = command;
 }
 
-BOOL StairsBuilder::playVoice(int voice)
+BOOL StairsBuilder::playVoice()
 {
+	LPCTSTR voice = 0;
+
+	switch (m_command)
+	{
+	case Check::BuildStairs: voice = _T("BuildStairs"); break;
+	case Check::MoveToBegin: voice = _T("MoveToBegin"); break;
+	case Check::MoveToEnd: voice = _T("MoveToEnd"); break;
+	case Check::MoveBegin: voice = _T("MoveBegin"); break;
+	case Check::MoveEnd: voice = _T("MoveEnd"); break;
+	case Check::SetBegin: voice = _T("SetBegin"); break;
+	case Check::SetEnd: voice = _T("SetEnd"); break;
+	}
+
 	if (!voice)
 		return FALSE;
 
@@ -23,7 +37,7 @@ BOOL StairsBuilder::playVoice(int voice)
 
 	// wav ファイルのパスを取得する。
 	TCHAR wavFileName[MAX_PATH] = {};
-	::StringCbPrintf(wavFileName, sizeof(wavFileName), _T("%s\\%d.wav"), folderName, voice);
+	::StringCbPrintf(wavFileName, sizeof(wavFileName), _T("%s\\%s.wav"), folderName, voice);
 	MY_TRACE_TSTR(wavFileName);
 
 	// ファイルが存在するなら
@@ -36,48 +50,60 @@ BOOL StairsBuilder::playVoice(int voice)
 	return TRUE;
 }
 
-BOOL StairsBuilder::createMoverMap(int command)
+BOOL StairsBuilder::getSelectObjects()
 {
-	int stairFrame = m_fp->track[Track::Frame];
+	MY_TRACE(_T("StairsBuilder::getSelectObjects()\n"));
 
 	// 選択オブジェクトの数を取得する。
 	int c = g_auin.GetSelectedObjectCount();
 	MY_TRACE_INT(c);
 
+	// 選択オブジェクトが存在しないなら
 	if (!c)
-		return FALSE;
-
-	int arrangeFrame = 0;
-
-	if (command == Check::Arrange)
 	{
-		int objectIndex = g_auin.GetSelectedObject(0);
+		// カレントオブジェクトのインデックスを取得する。
+		int objectIndex = g_auin.GetCurrentObjectIndex();
 		MY_TRACE_INT(objectIndex);
-		if (objectIndex < 0) return FALSE;
 
-		ExEdit::Object* object = g_auin.GetObject(objectIndex);
-		MY_TRACE_HEX(object);
-		if (!object) return FALSE;
+		if (objectIndex < 0)
+			return FALSE;
 
-		int midptLeader = object->index_midpt_leader;
-		MY_TRACE_INT(midptLeader);
-		if (midptLeader >= 0)
-			objectIndex = midptLeader; // 中間点がある場合は中間点元のオブジェクト ID を取得
+		m_selectObjects.push_back(objectIndex);
 
-		// オブジェクトを取得する。
-		object = g_auin.GetObject(objectIndex);
-		MY_TRACE_HEX(object);
-		if (!object) return FALSE;
-
-		arrangeFrame = object->frame_begin;
+		return TRUE;
 	}
-
-	int stairStep = 0;
 
 	for (int i = 0; i < c; i++)
 	{
 		// 選択オブジェクトのインデックスを取得する。
 		int objectIndex = g_auin.GetSelectedObject(i);
+		MY_TRACE_INT(objectIndex);
+
+		m_selectObjects.push_back(objectIndex);
+	}
+
+	return TRUE;
+}
+
+BOOL StairsBuilder::createMoverMap()
+{
+	MY_TRACE(_T("StairsBuilder::createMoverMap(%d)\n"), m_command);
+
+	if (!getSelectObjects())
+	{
+		// エラーメッセージを出して終了する。
+		TCHAR text[MAX_PATH] = {};
+		::StringCbPrintf(text, sizeof(text), _T("選択アイテムがありません"));
+		::MessageBox(m_fp->hwnd, text, _T("BuildStairs"), MB_OK | MB_ICONWARNING);
+
+		return FALSE;
+	}
+
+	int stairFrame = m_fp->track[Track::Frame];
+	int stairStep = 0;
+
+	for (int objectIndex : m_selectObjects)
+	{
 		MY_TRACE_INT(objectIndex);
 		if (objectIndex < 0) continue;
 
@@ -91,9 +117,11 @@ BOOL StairsBuilder::createMoverMap(int command)
 
 		int midptLeader = object->index_midpt_leader;
 		MY_TRACE_INT(midptLeader);
+
+		// 中間点があるなら
 		if (midptLeader >= 0)
 		{
-			objectIndex = midptLeader; // 中間点がある場合は中間点元のオブジェクト ID を取得
+			objectIndex = midptLeader; // 中間点元のオブジェクト ID を取得
 
 			while (objectIndex >= 0)
 			{
@@ -106,36 +134,71 @@ BOOL StairsBuilder::createMoverMap(int command)
 				MY_TRACE_INT(midptLeader2);
 				if (midptLeader2 != midptLeader) break;
 
-				int frame_begin = object->frame_begin + stairFrame * stairStep;
-				int frame_end = object->frame_end + stairFrame * stairStep;
-
-				if (command == Check::Arrange)
-				{
-					frame_begin = arrangeFrame;
-					frame_end = arrangeFrame + object->frame_end - object->frame_begin;
-				}
-
-				m_moverMap[object] = Mover(stairStep, objectIndex, object, frame_begin, frame_end);
+				addMover(objectIndex, object, stairFrame * stairStep);
 
 				objectIndex = g_auin.GetNextObjectIndex(objectIndex);
 			}
 		}
+		// 中間点がないなら
 		else
 		{
-			int frame_begin = object->frame_begin + stairFrame * stairStep;
-			int frame_end = object->frame_end + stairFrame * stairStep;
-
-			if (command == Check::Arrange)
-			{
-				frame_begin = arrangeFrame;
-				frame_end = arrangeFrame + object->frame_end - object->frame_begin;
-			}
-
-			m_moverMap[object] = Mover(stairStep, objectIndex, object, frame_begin, frame_end);
+			addMover(objectIndex, object, stairFrame * stairStep);
 		}
 
 		stairStep++;
 	}
+
+	return TRUE;
+}
+
+BOOL StairsBuilder::addMover(int objectIndex, ExEdit::Object* object, int frame_offset)
+{
+	int currentFrame = g_auin.GetExEditCurrentFrame();
+
+	int frame_begin = object->frame_begin;
+	int frame_end = object->frame_end;
+
+	switch (m_command)
+	{
+	case Check::BuildStairs:
+		{
+			frame_begin += frame_offset;
+			frame_end += frame_offset;
+
+			break;
+		}
+	case Check::MoveBegin:
+		{
+			frame_begin = currentFrame;
+			frame_end = currentFrame + (object->frame_end - object->frame_begin);
+
+			break;
+		}
+	case Check::MoveEnd:
+		{
+			frame_end = currentFrame - 1;
+			frame_begin = currentFrame - 1 - (object->frame_end - object->frame_begin);
+
+			break;
+		}
+	case Check::SetBegin:
+		{
+			frame_begin = currentFrame;
+
+			break;
+		}
+	case Check::SetEnd:
+		{
+			frame_end = currentFrame - 1;
+
+			break;
+		}
+	}
+
+	if (frame_begin >= frame_end)
+		return FALSE;
+
+	m_moverMap[object] = Mover(objectIndex, object, frame_begin, frame_end);
 
 	return TRUE;
 }
@@ -202,13 +265,9 @@ int StairsBuilder::checkMoverMap()
 	return invalidCount;
 }
 
-//--------------------------------------------------------------------
-
-BOOL StairsBuilder::buildStairs(int command)
+BOOL StairsBuilder::applyMoverMap()
 {
-	// オブジェクトを動かしたあとの状態を構築する。
-
-	createMoverMap(command);
+	MY_TRACE(_T("StairsBuilder::applyMoverMap()\n"));
 
 	if (m_moverMap.empty())
 	{
@@ -237,10 +296,9 @@ BOOL StairsBuilder::buildStairs(int command)
 
 	// 声で知らせる。
 
-	if (command == Check::BuildStairs)
-		playVoice(m_fp->track[Track::Voice]);
+	playVoice();
 
-	// 実際にオブジェクトを動かす。
+	// Undo を作成する。
 
 	g_auin.PushUndo();
 
@@ -251,6 +309,8 @@ BOOL StairsBuilder::buildStairs(int command)
 
 		g_auin.CreateUndo(objectIndex, 8);
 	}
+
+	// 実際にオブジェクトを動かし、レイヤーを再計算する。
 
 	int flags[100] = {};
 
@@ -267,7 +327,83 @@ BOOL StairsBuilder::buildStairs(int command)
 
 	g_auin.RedrawLayers(flags);
 
-	// AviUtl のプレビューウィンドウを再描画する。
+	// AviUtl を再描画する。
+	::PostMessage(m_fp->hwnd, AviUtl::FilterPlugin::WindowMessage::Command, 0, 0);
+
+	return TRUE;
+}
+
+//--------------------------------------------------------------------
+
+BOOL StairsBuilder::move()
+{
+	MY_TRACE(_T("StairsBuilder::move(%d)\n"), m_command);
+
+	// オブジェクトを動かしたあとの状態を構築する。
+	createMoverMap();
+
+	// 実際にオブジェクトを動かす。
+	return applyMoverMap();
+}
+
+BOOL StairsBuilder::moveTo()
+{
+	MY_TRACE(_T("StairsBuilder::moveTo(%d)\n"), m_command);
+
+	if (!getSelectObjects())
+	{
+		// エラーメッセージを出して終了する。
+		TCHAR text[MAX_PATH] = {};
+		::StringCbPrintf(text, sizeof(text), _T("選択アイテムがありません"));
+		::MessageBox(m_fp->hwnd, text, _T("BuildStairs"), MB_OK | MB_ICONWARNING);
+
+		return FALSE;
+	}
+
+	int frame = -1;
+
+	for (int objectIndex : m_selectObjects)
+	{
+		MY_TRACE_INT(objectIndex);
+		if (objectIndex < 0) continue;
+
+		// 選択オブジェクトを取得する。
+		ExEdit::Object* object = g_auin.GetObject(objectIndex);
+		MY_TRACE_HEX(object);
+		if (!object) continue;
+
+		if (m_command == Check::MoveToBegin)
+		{
+			if (frame < 0)
+				frame = object->frame_begin;
+			else
+				frame = std::min(frame, object->frame_begin);
+		}
+		else if (m_command == Check::MoveToEnd)
+		{
+			if (frame < 0)
+				frame = object->frame_end + 1;
+			else
+				frame = std::max(frame, object->frame_end + 1);
+		}
+	}
+
+	// フレームが無効なら
+	if (frame < 0)
+	{
+		// エラーメッセージを出して終了する。
+		TCHAR text[MAX_PATH] = {};
+		::StringCbPrintf(text, sizeof(text), _T("現在フレームを動かせませんでした"));
+		::MessageBox(m_fp->hwnd, text, _T("BuildStairs"), MB_OK | MB_ICONWARNING);
+
+		return FALSE;
+	}
+
+	playVoice();
+
+	g_auin.SetExEditCurrentFrame(frame);
+	::InvalidateRect(g_auin.GetExEditWindow(), 0, FALSE);
+	m_fp->exfunc->set_frame(m_editp, frame);
 	::PostMessage(m_fp->hwnd, AviUtl::FilterPlugin::WindowMessage::Command, 0, 0);
 
 	return TRUE;

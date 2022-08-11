@@ -9,8 +9,13 @@ BOOL func_init(AviUtl::FilterPlugin* fp)
 
 	g_auin.initExEditAddress();
 
-	fp->exfunc->add_menu_item(fp, "アイテムをずらす",
-		fp->hwnd, Check::BuildStairs, 0, AviUtl::ExFunc::AddMenuItemFlag::None);
+	fp->exfunc->add_menu_item(fp, "アイテムをずらす", fp->hwnd, Check::BuildStairs, 0, AviUtl::ExFunc::AddMenuItemFlag::None);
+	fp->exfunc->add_menu_item(fp, "現在位置をアイテムの先頭に移動", fp->hwnd, Check::MoveToBegin, 0, AviUtl::ExFunc::AddMenuItemFlag::None);
+	fp->exfunc->add_menu_item(fp, "現在位置をアイテムの最後に移動", fp->hwnd, Check::MoveToEnd, 0, AviUtl::ExFunc::AddMenuItemFlag::None);
+	fp->exfunc->add_menu_item(fp, "アイテムの先頭を現在位置に移動", fp->hwnd, Check::MoveBegin, 0, AviUtl::ExFunc::AddMenuItemFlag::None);
+	fp->exfunc->add_menu_item(fp, "アイテムの最後を現在位置に移動", fp->hwnd, Check::MoveEnd, 0, AviUtl::ExFunc::AddMenuItemFlag::None);
+	fp->exfunc->add_menu_item(fp, "アイテムの先頭を現在位置まで拡張", fp->hwnd, Check::SetBegin, 0, AviUtl::ExFunc::AddMenuItemFlag::None);
+	fp->exfunc->add_menu_item(fp, "アイテムの最後を現在位置まで拡張", fp->hwnd, Check::SetEnd, 0, AviUtl::ExFunc::AddMenuItemFlag::None);
 
 	return TRUE;
 }
@@ -61,26 +66,30 @@ BOOL func_WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam, AviUtl:
 
 LPCSTR track_name[] =
 {
-	"ﾎﾞｲｽ",
 	"ﾌﾚｰﾑ",
 };
 
-int track_def[] = {  1,     1 };
-int track_min[] = {  0, -6000 };
-int track_max[] = { 10, +6000 };
+int track_def[] = {     1 };
+int track_min[] = { -6000 };
+int track_max[] = { +6000 };
 
 LPCSTR check_name[] =
 {
 	"アイテムをずらす",
-	"アイテムを整える",
+	"現在位置をアイテムの先頭に移動",
+	"現在位置をアイテムの最後に移動",
+	"アイテムの先頭を現在位置に移動",
+	"アイテムの最後を現在位置に移動",
+	"アイテムの先頭を現在位置まで拡張",
+	"アイテムの最後を現在位置まで拡張",
 };
 
-int check_def[] = { -1, -1 };
+int check_def[] = { -1, -1, -1, -1, -1, -1, -1 };
 
 EXTERN_C AviUtl::FilterPluginDLL* CALLBACK GetFilterTable()
 {
 	LPCSTR name = "アイテムずらし";
-	LPCSTR information = "アイテムずらし 1.1.0 by 蛇色";
+	LPCSTR information = "アイテムずらし 2.0.0 by 蛇色";
 
 	static AviUtl::FilterPluginDLL filter =
 	{
