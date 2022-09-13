@@ -16,6 +16,7 @@ BOOL func_init(AviUtl::FilterPlugin* fp)
 	fp->exfunc->add_menu_item(fp, "アイテムの最後を現在位置に移動", fp->hwnd, Check::MoveEnd, 0, AviUtl::ExFunc::AddMenuItemFlag::None);
 	fp->exfunc->add_menu_item(fp, "アイテムの先頭を現在位置まで拡張", fp->hwnd, Check::SetBegin, 0, AviUtl::ExFunc::AddMenuItemFlag::None);
 	fp->exfunc->add_menu_item(fp, "アイテムの最後を現在位置まで拡張", fp->hwnd, Check::SetEnd, 0, AviUtl::ExFunc::AddMenuItemFlag::None);
+	fp->exfunc->add_menu_item(fp, "中間点を削除", fp->hwnd, Check::DeleteMidPt, 0, AviUtl::ExFunc::AddMenuItemFlag::None);
 
 	return TRUE;
 }
@@ -82,14 +83,15 @@ LPCSTR check_name[] =
 	"アイテムの最後を現在位置に移動",
 	"アイテムの先頭を現在位置まで拡張",
 	"アイテムの最後を現在位置まで拡張",
+	"中間点を削除",
 };
 
-int check_def[] = { -1, -1, -1, -1, -1, -1, -1 };
+int check_def[] = { -1, -1, -1, -1, -1, -1, -1, -1 };
 
 EXTERN_C AviUtl::FilterPluginDLL* CALLBACK GetFilterTable()
 {
 	LPCSTR name = "アイテムずらし";
-	LPCSTR information = "アイテムずらし 2.0.0 by 蛇色";
+	LPCSTR information = "アイテムずらし 2.1.0 by 蛇色";
 
 	static AviUtl::FilterPluginDLL filter =
 	{

@@ -24,6 +24,7 @@ BOOL StairsBuilder::playVoice()
 	case Check::MoveEnd: voice = _T("MoveEnd"); break;
 	case Check::SetBegin: voice = _T("SetBegin"); break;
 	case Check::SetEnd: voice = _T("SetEnd"); break;
+	case Check::DeleteMidPt: voice = _T("DeleteMidPt"); break;
 	}
 
 	if (!voice)
@@ -405,6 +406,86 @@ BOOL StairsBuilder::moveTo()
 	::InvalidateRect(g_auin.GetExEditWindow(), 0, FALSE);
 	m_fp->exfunc->set_frame(m_editp, frame);
 	::PostMessage(m_fp->hwnd, AviUtl::FilterPlugin::WindowMessage::Command, 0, 0);
+
+	return TRUE;
+}
+
+BOOL StairsBuilder::deleteMidPt()
+{
+	MY_TRACE(_T("StairsBuilder::deleteMidPt(%d)\n"), m_command);
+
+	int currentFrame = m_fp->exfunc->get_frame(m_editp);
+
+	int objectIndex = g_auin.GetCurrentObjectIndex();
+	MY_TRACE_INT(objectIndex);
+	if (objectIndex < 0) return FALSE;
+
+	// 選択オブジェクトを取得する。
+	ExEdit::Object* object = g_auin.GetObject(objectIndex);
+	MY_TRACE_HEX(object);
+	if (!object) return FALSE;
+
+	int midptLeader = object->index_midpt_leader;
+	MY_TRACE_INT(midptLeader);
+
+	// 中間点がないなら何もしない。
+	if (midptLeader < 0) return FALSE;
+
+	int layerIndex = object->layer_disp;
+	int nearObjectIndex = -1;
+	int nearFrameBegin = -1;
+
+	objectIndex = midptLeader; // 中間点元のオブジェクト ID を取得
+
+	while (objectIndex >= 0)
+	{
+		if (objectIndex != midptLeader)
+		{
+			// オブジェクトを取得する。
+			ExEdit::Object* object = g_auin.GetObject(objectIndex);
+			MY_TRACE_HEX(object);
+			if (!object) break;
+
+			// 中間点の先頭が異なる場合はループ終了。
+			int midptLeader2 = object->index_midpt_leader;
+			MY_TRACE_INT(midptLeader2);
+			if (midptLeader2 != midptLeader) break;
+
+			// 最初のオブジェクトなら
+			if (nearFrameBegin == -1)
+			{
+				nearObjectIndex = objectIndex;
+				nearFrameBegin = object->frame_begin;
+			}
+			// 最初以外のオブジェクトなら
+			else
+			{
+				// 現在フレームとの距離を取得する。
+				int distance = abs(currentFrame - nearFrameBegin);
+				int distance2 = abs(currentFrame - object->frame_begin);
+
+				// ニアオブジェクトより距離が近いなら
+				if (distance2 < distance)
+				{
+					// ニアオブジェクトを更新する。
+					nearObjectIndex = objectIndex;
+					nearFrameBegin = object->frame_begin;
+				}
+			}
+		}
+
+		objectIndex = g_auin.GetNextObjectIndex(objectIndex);
+	}
+
+	if (nearObjectIndex < 0) return FALSE;
+
+	playVoice();
+
+	g_auin.PushUndo();
+	g_auin.DeleteMidPoint(nearObjectIndex, 0);
+	g_auin.RedrawLayer(layerIndex);
+//	g_auin.DrawSettingDialog(midptLeader);
+	::InvalidateRect(g_auin.GetSettingDialog(), 0, FALSE);
 
 	return TRUE;
 }

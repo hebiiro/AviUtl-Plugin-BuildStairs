@@ -27,6 +27,7 @@ BOOL onCommand(int commandIndex, AviUtl::EditHandle* editp, AviUtl::FilterPlugin
 	else if (commandIndex == Check::MoveEnd) onMoveEnd(editp, fp);
 	else if (commandIndex == Check::SetBegin) onSetBegin(editp, fp);
 	else if (commandIndex == Check::SetEnd) onSetEnd(editp, fp);
+	else if (commandIndex == Check::DeleteMidPt) onDeleteMidPt(editp, fp);
 
 	return FALSE;
 }
@@ -92,6 +93,15 @@ BOOL onSetEnd(AviUtl::EditHandle* editp, AviUtl::FilterPlugin* fp)
 	StairsBuilder builder(editp, fp, Check::SetEnd);
 
 	return builder.move();
+}
+
+BOOL onDeleteMidPt(AviUtl::EditHandle* editp, AviUtl::FilterPlugin* fp)
+{
+	MY_TRACE(_T("onDeleteMidPt()\n"));
+
+	StairsBuilder builder(editp, fp, Check::DeleteMidPt);
+
+	return builder.deleteMidPt();
 }
 
 //--------------------------------------------------------------------

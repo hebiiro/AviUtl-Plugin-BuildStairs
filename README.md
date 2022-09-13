@@ -28,6 +28,7 @@ BuildStairs フォルダ内の wav ファイルが再生されます。<br>
 
 ## 更新履歴
 
+* 2.1.0 - 2022/09/14 中間点を削除する機能を追加
 * 2.0.0 - 2022/08/11 現在位置を基準にしてアイテムを整列する機能を追加
 * 1.1.0 - 2022/08/09 開始フレームを揃える機能を追加
 * 1.0.2 - 2022/08/08 中間点を持つアイテムに対応
@@ -37,7 +38,7 @@ BuildStairs フォルダ内の wav ファイルが再生されます。<br>
 ## 動作確認
 
 * (必須) AviUtl 1.10 & 拡張編集 0.92 http://spring-fragrance.mints.ne.jp/aviutl/
-* (共存確認) patch.aul r41 https://scrapbox.io/ePi5131/patch.aul
+* (共存確認) patch.aul r42 https://scrapbox.io/ePi5131/patch.aul
 
 ## クレジット
 

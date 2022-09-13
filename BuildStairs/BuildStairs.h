@@ -16,6 +16,7 @@ struct Check
 	static const int32_t MoveEnd = 4;
 	static const int32_t SetBegin = 5;
 	static const int32_t SetEnd = 6;
+	static const int32_t DeleteMidPt = 7;
 };
 
 //--------------------------------------------------------------------
@@ -32,5 +33,6 @@ BOOL onMoveBegin(AviUtl::EditHandle* editp, AviUtl::FilterPlugin* fp);
 BOOL onMoveEnd(AviUtl::EditHandle* editp, AviUtl::FilterPlugin* fp);
 BOOL onSetBegin(AviUtl::EditHandle* editp, AviUtl::FilterPlugin* fp);
 BOOL onSetEnd(AviUtl::EditHandle* editp, AviUtl::FilterPlugin* fp);
+BOOL onDeleteMidPt(AviUtl::EditHandle* editp, AviUtl::FilterPlugin* fp);
 
 //--------------------------------------------------------------------
