@@ -37,6 +37,8 @@ public:
 	BOOL move();
 	BOOL moveTo();
 	BOOL deleteMidPt();
+	BOOL moveToLeft();
+	BOOL moveToRight();
 };
 
 //--------------------------------------------------------------------

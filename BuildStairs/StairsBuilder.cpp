@@ -45,7 +45,19 @@ BOOL StairsBuilder::playVoice()
 	if (::GetFileAttributes(wavFileName) != INVALID_FILE_ATTRIBUTES)
 	{
 		// wav ファイルを再生する。
-		::PlaySound(wavFileName, 0, SND_FILENAME | SND_ASYNC);
+
+		TCHAR exeFileName[MAX_PATH] = {};
+		::GetModuleFileName(0, exeFileName, MAX_PATH);
+		::PathRemoveFileSpec(exeFileName);
+		::PathAppend(exeFileName, _T("WavPlayer.exe"));
+		::PathQuoteSpaces(exeFileName);
+		MY_TRACE_TSTR(exeFileName);
+
+		SHELLEXECUTEINFO sei = { sizeof(sei) };
+		sei.lpFile = exeFileName;
+		sei.lpParameters = wavFileName;
+		BOOL result = ::ShellExecuteEx(&sei);
+		MY_TRACE_HEX(result);
 	}
 
 	return TRUE;
@@ -486,6 +498,20 @@ BOOL StairsBuilder::deleteMidPt()
 	g_auin.RedrawLayer(layerIndex);
 //	g_auin.DrawSettingDialog(midptLeader);
 	::InvalidateRect(g_auin.GetSettingDialog(), 0, FALSE);
+
+	return TRUE;
+}
+
+BOOL StairsBuilder::moveToLeft()
+{
+	MY_TRACE(_T("StairsBuilder::moveToLeft(%d)\n"), m_command);
+
+	return TRUE;
+}
+
+BOOL StairsBuilder::moveToRight()
+{
+	MY_TRACE(_T("StairsBuilder::moveToRight(%d)\n"), m_command);
 
 	return TRUE;
 }
