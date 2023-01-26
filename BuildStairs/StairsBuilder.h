@@ -33,12 +33,16 @@ public:
 	BOOL addMover(int objectIndex, ExEdit::Object* object, int frame_offset);
 	int checkMoverMap();
 	BOOL applyMoverMap();
+	BOOL moveBeginInternal(BOOL isMove);
+	BOOL moveEndInternal(BOOL isMove);
 
 	BOOL move();
-	BOOL moveTo();
+	BOOL moveCurrentFrame();
+	BOOL moveBegin();
+	BOOL moveEnd();
+	BOOL setBegin();
+	BOOL setEnd();
 	BOOL deleteMidPt();
-	BOOL moveToLeft();
-	BOOL moveToRight();
 };
 
 //--------------------------------------------------------------------

@@ -25,8 +25,6 @@ BOOL StairsBuilder::playVoice()
 	case Check::SetBegin: voice = _T("SetBegin"); break;
 	case Check::SetEnd: voice = _T("SetEnd"); break;
 	case Check::DeleteMidPt: voice = _T("DeleteMidPt"); break;
-	case Check::MoveToLeft: voice = _T("MoveToLeft"); break;
-	case Check::MoveToRight: voice = _T("MoveToRight"); break;
 	}
 
 	if (!voice)
@@ -348,6 +346,240 @@ BOOL StairsBuilder::applyMoverMap()
 	return TRUE;
 }
 
+// アイテムを左に動かす。
+BOOL StairsBuilder::moveBeginInternal(BOOL isMove)
+{
+	MY_TRACE(_T("StairsBuilder::moveBeginInternal(%d)\n"), isMove);
+
+	// 選択オブジェクトを取得する。
+	if (!getSelectObjects())
+	{
+		// エラーメッセージを出して終了する。
+		TCHAR text[MAX_PATH] = {};
+		::StringCbPrintf(text, sizeof(text), _T("選択アイテムがありません"));
+		::MessageBox(m_fp->hwnd, text, _T("BuildStairs"), MB_OK | MB_ICONWARNING);
+
+		return FALSE;
+	}
+
+	// レイヤーの最大数。
+	const int LayerMaxSize = 100;
+
+	// 声で知らせる。
+	playVoice();
+
+	// 新しい Undo を作成する。
+	g_auin.PushUndo();
+
+	// レイヤーを再描画するためのフラグ。
+	int redrawLayerFlags[LayerMaxSize] = {};
+
+	for (int layer = 0; layer < LayerMaxSize; layer++)
+	{
+		std::vector<int> objects;
+
+		// オブジェクトの数を取得する。
+		int c = g_auin.GetCurrentSceneObjectCount();
+		MY_TRACE_INT(c);
+
+		for (int i = 0; i < c; i++)
+		{
+			// オブジェクトを取得する。
+			ExEdit::Object* object = g_auin.GetSortedObject(i);
+			MY_TRACE_HEX(object);
+			if (!object) continue;
+
+			if (layer != object->layer_set)
+				continue;
+
+			objects.push_back(i);
+		}
+
+		if (objects.empty())
+			continue;
+
+		redrawLayerFlags[layer] = TRUE;
+
+		// オブジェクトを時間順にソートする。
+		std::sort(objects.begin(), objects.end(), [](int a, int b) {
+			ExEdit::Object* objectA = g_auin.GetSortedObject(a);
+			ExEdit::Object* objectB = g_auin.GetSortedObject(b);
+			return objectA->frame_begin < objectB->frame_begin;
+		});
+
+		// 移動先。
+		int currentPos = m_fp->exfunc->get_frame(m_editp);
+
+		for (int objectIndex : objects)
+		{
+			// オブジェクトを取得する。
+			ExEdit::Object* object = g_auin.GetSortedObject(objectIndex);
+
+			// このオブジェクトが選択されているか調べる。
+			auto result = std::find_if(m_selectObjects.begin(), m_selectObjects.end(), [object](int x) {
+				return object == g_auin.GetObject(x);
+			});
+
+			// このオブジェクトが選択されているなら
+			if (result != m_selectObjects.end())
+			{
+				// オブジェクトの移動量を算出する。
+				int move = currentPos - object->frame_begin;
+
+				// オブジェクトの移動は前方に限定する。
+				if (move < 0)
+				{
+					// このオブジェクトを Undo に加える。
+					g_auin.CreateUndo(*result, 8);
+
+					// オブジェクトを移動する。
+					object->frame_begin += move;
+					if (isMove) object->frame_end += move;
+				}
+			}
+
+			// 移動先よりオブジェクトの終了位置が後方なら
+			if (currentPos < object->frame_end + 1)
+			{
+				// 移動先を更新する。
+				currentPos = object->frame_end + 1;
+			}
+		}
+	}
+
+	// レイヤーを更新する。
+	g_auin.RedrawLayers(redrawLayerFlags);
+
+	// AviUtl を再描画する。
+	::PostMessage(m_fp->hwnd, AviUtl::FilterPlugin::WindowMessage::Command, 0, 0);
+
+	return TRUE;
+}
+
+// アイテムを右に動かす。
+BOOL StairsBuilder::moveEndInternal(BOOL isMove)
+{
+	MY_TRACE(_T("StairsBuilder::moveEndInternal(%d)\n"), isMove);
+
+	// 選択オブジェクトを取得する。
+	if (!getSelectObjects())
+	{
+		// エラーメッセージを出して終了する。
+		TCHAR text[MAX_PATH] = {};
+		::StringCbPrintf(text, sizeof(text), _T("選択アイテムがありません"));
+		::MessageBox(m_fp->hwnd, text, _T("BuildStairs"), MB_OK | MB_ICONWARNING);
+
+		return FALSE;
+	}
+
+	// レイヤーの最大数。
+	const int LayerMaxSize = 100;
+
+	// 声で知らせる。
+	playVoice();
+
+	// 新しい Undo を作成する。
+	g_auin.PushUndo();
+
+	// レイヤーを再描画するためのフラグ。
+	int redrawLayerFlags[LayerMaxSize] = {};
+
+	for (int layer = 0; layer < LayerMaxSize; layer++)
+	{
+		std::vector<int> objects;
+
+		// オブジェクトの数を取得する。
+		int c = g_auin.GetCurrentSceneObjectCount();
+		MY_TRACE_INT(c);
+
+		for (int i = 0; i < c; i++)
+		{
+			// オブジェクトを取得する。
+			ExEdit::Object* object = g_auin.GetSortedObject(i);
+			MY_TRACE_HEX(object);
+			if (!object) continue;
+
+			if (layer != object->layer_set)
+				continue;
+
+			objects.push_back(i);
+		}
+
+		if (objects.empty())
+			continue;
+
+		redrawLayerFlags[layer] = TRUE;
+
+		// オブジェクトを時間順にソートする。
+		std::sort(objects.begin(), objects.end(), [](int a, int b) {
+			ExEdit::Object* objectA = g_auin.GetSortedObject(a);
+			ExEdit::Object* objectB = g_auin.GetSortedObject(b);
+			return objectA->frame_begin > objectB->frame_begin;
+		});
+
+		// 移動先。
+		int currentPos = m_fp->exfunc->get_frame(m_editp);
+
+		for (int objectIndex : objects)
+		{
+			// オブジェクトを取得する。
+			ExEdit::Object* object = g_auin.GetSortedObject(objectIndex);
+
+			// このオブジェクトが選択されているか調べる。
+			auto result = std::find_if(m_selectObjects.begin(), m_selectObjects.end(), [object](int x) {
+				return object == g_auin.GetObject(x);
+			});
+
+			// このオブジェクトが選択されているなら
+			if (result != m_selectObjects.end())
+			{
+				// オブジェクトの移動量を算出する。
+				int move = currentPos - object->frame_end;
+
+				// オブジェクトの移動は後方に限定する。
+				if (move > 0)
+				{
+					// このオブジェクトを Undo に加える。
+					g_auin.CreateUndo(*result, 8);
+
+					// オブジェクトを移動する。
+					if (isMove) object->frame_begin += move;
+					object->frame_end += move;
+				}
+			}
+
+			// 移動先よりオブジェクトの終了位置が前方なら
+			if (currentPos > object->frame_begin - 1)
+			{
+				// 移動先を更新する。
+				currentPos = object->frame_begin - 1;
+			}
+		}
+	}
+
+	// レイヤーを更新する。
+	g_auin.RedrawLayers(redrawLayerFlags);
+
+	{
+		// 設定ダイアログを再描画する。
+
+		int objectIndex = g_auin.GetCurrentObjectIndex();
+		MY_TRACE_INT(objectIndex);
+
+		if (objectIndex >= 0)
+		{
+			// ここが機能していない。
+			g_auin.DrawSettingDialog(objectIndex);
+			::InvalidateRect(g_auin.GetSettingDialog(), 0, TRUE);
+		}
+	}
+
+	// AviUtl を再描画する。
+	::PostMessage(m_fp->hwnd, AviUtl::FilterPlugin::WindowMessage::Command, 0, 0);
+
+	return TRUE;
+}
+
 //--------------------------------------------------------------------
 
 BOOL StairsBuilder::move()
@@ -361,9 +593,9 @@ BOOL StairsBuilder::move()
 	return applyMoverMap();
 }
 
-BOOL StairsBuilder::moveTo()
+BOOL StairsBuilder::moveCurrentFrame()
 {
-	MY_TRACE(_T("StairsBuilder::moveTo(%d)\n"), m_command);
+	MY_TRACE(_T("StairsBuilder::moveCurrentFrame(%d)\n"), m_command);
 
 	if (!getSelectObjects())
 	{
@@ -422,6 +654,38 @@ BOOL StairsBuilder::moveTo()
 	::PostMessage(m_fp->hwnd, AviUtl::FilterPlugin::WindowMessage::Command, 0, 0);
 
 	return TRUE;
+}
+
+// アイテムの開始位置を動かす。終了位置もそれに連動して動かす。
+BOOL StairsBuilder::moveBegin()
+{
+	MY_TRACE(_T("StairsBuilder::moveBegin(%d)\n"), m_command);
+
+	return moveBeginInternal(TRUE);
+}
+
+// アイテムの終了位置を動かす。開始位置もそれに連動して動かす。
+BOOL StairsBuilder::moveEnd()
+{
+	MY_TRACE(_T("StairsBuilder::moveEnd(%d)\n"), m_command);
+
+	return moveEndInternal(TRUE);
+}
+
+// アイテムの開始位置を左に伸ばす。終了位置は動かさない。
+BOOL StairsBuilder::setBegin()
+{
+	MY_TRACE(_T("StairsBuilder::setBegin(%d)\n"), m_command);
+
+	return moveBeginInternal(FALSE);
+}
+
+// アイテムの終了位置を右に伸ばす。開始位置は動かさない。
+BOOL StairsBuilder::setEnd()
+{
+	MY_TRACE(_T("StairsBuilder::setEnd(%d)\n"), m_command);
+
+	return moveEndInternal(FALSE);
 }
 
 BOOL StairsBuilder::deleteMidPt()
@@ -500,204 +764,6 @@ BOOL StairsBuilder::deleteMidPt()
 	g_auin.RedrawLayer(layerIndex);
 //	g_auin.DrawSettingDialog(midptLeader);
 	::InvalidateRect(g_auin.GetSettingDialog(), 0, FALSE);
-
-	return TRUE;
-}
-
-BOOL StairsBuilder::moveToLeft()
-{
-	MY_TRACE(_T("StairsBuilder::moveToLeft(%d)\n"), m_command);
-
-	// 選択オブジェクトを取得する。
-	if (!getSelectObjects())
-	{
-		// エラーメッセージを出して終了する。
-		TCHAR text[MAX_PATH] = {};
-		::StringCbPrintf(text, sizeof(text), _T("選択アイテムがありません"));
-		::MessageBox(m_fp->hwnd, text, _T("BuildStairs"), MB_OK | MB_ICONWARNING);
-
-		return FALSE;
-	}
-
-	// レイヤーの最大数。
-	const int LayerMaxSize = 100;
-
-	// 声で知らせる。
-	playVoice();
-
-	// 新しい Undo を作成する。
-	g_auin.PushUndo();
-
-	// レイヤーを再描画するためのフラグ。
-	int redrawLayerFlags[LayerMaxSize] = {};
-
-	for (int layer = 0; layer < LayerMaxSize; layer++)
-	{
-		std::vector<int> objects;
-
-		// オブジェクトの数を取得する。
-		int c = g_auin.GetCurrentSceneObjectCount();
-		MY_TRACE_INT(c);
-
-		for (int i = 0; i < c; i++)
-		{
-			// オブジェクトを取得する。
-			ExEdit::Object* object = g_auin.GetSortedObject(i);
-			MY_TRACE_HEX(object);
-			if (!object) continue;
-
-			if (layer != object->layer_set)
-				continue;
-
-			objects.push_back(i);
-		}
-
-		if (objects.empty())
-			continue;
-
-		redrawLayerFlags[layer] = TRUE;
-
-		// オブジェクトを時間順にソートする。
-		std::sort(objects.begin(), objects.end(), [](int a, int b) {
-			ExEdit::Object* objectA = g_auin.GetSortedObject(a);
-			ExEdit::Object* objectB = g_auin.GetSortedObject(b);
-			return objectA->frame_begin < objectB->frame_begin;
-		});
-
-		// 移動先。
-		int currentPos = 0;
-
-		for (int objectIndex : objects)
-		{
-			// オブジェクトを取得する。
-			ExEdit::Object* object = g_auin.GetSortedObject(objectIndex);
-
-			// このオブジェクトが選択されているか調べる。
-			auto result = std::find_if(m_selectObjects.begin(), m_selectObjects.end(), [object](int x) {
-				return object == g_auin.GetObject(x);
-			});
-
-			// このオブジェクトが選択されているなら
-			if (result != m_selectObjects.end())
-			{
-				// このオブジェクトを Undo に加える。
-				g_auin.CreateUndo(*result, 8);
-
-				// オブジェクトを移動する。
-				int move = currentPos - object->frame_begin;
-				object->frame_begin += move;
-				object->frame_end += move;
-			}
-
-			// 移動先を更新する。
-			currentPos = object->frame_end + 1;
-		}
-	}
-
-	// レイヤーを更新する。
-	g_auin.RedrawLayers(redrawLayerFlags);
-
-	// AviUtl を再描画する。
-	::PostMessage(m_fp->hwnd, AviUtl::FilterPlugin::WindowMessage::Command, 0, 0);
-
-	return TRUE;
-}
-
-BOOL StairsBuilder::moveToRight()
-{
-	MY_TRACE(_T("StairsBuilder::moveToRight(%d)\n"), m_command);
-
-	// 選択オブジェクトを取得する。
-	if (!getSelectObjects())
-	{
-		// エラーメッセージを出して終了する。
-		TCHAR text[MAX_PATH] = {};
-		::StringCbPrintf(text, sizeof(text), _T("選択アイテムがありません"));
-		::MessageBox(m_fp->hwnd, text, _T("BuildStairs"), MB_OK | MB_ICONWARNING);
-
-		return FALSE;
-	}
-
-	// レイヤーの最大数。
-	const int LayerMaxSize = 100;
-
-	// 声で知らせる。
-	playVoice();
-
-	// 新しい Undo を作成する。
-	g_auin.PushUndo();
-
-	// レイヤーを再描画するためのフラグ。
-	int redrawLayerFlags[LayerMaxSize] = {};
-
-	for (int layer = 0; layer < LayerMaxSize; layer++)
-	{
-		std::vector<int> objects;
-
-		// オブジェクトの数を取得する。
-		int c = g_auin.GetCurrentSceneObjectCount();
-		MY_TRACE_INT(c);
-
-		for (int i = 0; i < c; i++)
-		{
-			// オブジェクトを取得する。
-			ExEdit::Object* object = g_auin.GetSortedObject(i);
-			MY_TRACE_HEX(object);
-			if (!object) continue;
-
-			if (layer != object->layer_set)
-				continue;
-
-			objects.push_back(i);
-		}
-
-		if (objects.empty())
-			continue;
-
-		redrawLayerFlags[layer] = TRUE;
-
-		// オブジェクトを時間順にソートする。
-		std::sort(objects.begin(), objects.end(), [](int a, int b) {
-			ExEdit::Object* objectA = g_auin.GetSortedObject(a);
-			ExEdit::Object* objectB = g_auin.GetSortedObject(b);
-			return objectA->frame_begin > objectB->frame_begin;
-		});
-
-		// 移動先。
-		int currentPos = m_fp->exfunc->get_frame_n(m_editp) - 1;
-
-		for (int objectIndex : objects)
-		{
-			// オブジェクトを取得する。
-			ExEdit::Object* object = g_auin.GetSortedObject(objectIndex);
-
-			// このオブジェクトが選択されているか調べる。
-			auto result = std::find_if(m_selectObjects.begin(), m_selectObjects.end(), [object](int x) {
-				return object == g_auin.GetObject(x);
-			});
-
-			// このオブジェクトが選択されているなら
-			if (result != m_selectObjects.end())
-			{
-				// このオブジェクトを Undo に加える。
-				g_auin.CreateUndo(*result, 8);
-
-				// オブジェクトを移動する。
-				int move = currentPos - object->frame_end;
-				object->frame_begin += move;
-				object->frame_end += move;
-			}
-
-			// 移動先を更新する。
-			currentPos = object->frame_begin - 1;
-		}
-	}
-
-	// レイヤーを更新する。
-	g_auin.RedrawLayers(redrawLayerFlags);
-
-	// AviUtl を再描画する。
-	::PostMessage(m_fp->hwnd, AviUtl::FilterPlugin::WindowMessage::Command, 0, 0);
 
 	return TRUE;
 }
