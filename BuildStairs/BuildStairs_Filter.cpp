@@ -91,7 +91,7 @@ int check_def[] = { -1, -1, -1, -1, -1, -1, -1, -1 };
 EXTERN_C AviUtl::FilterPluginDLL* WINAPI GetFilterTable()
 {
 	LPCSTR name = "アイテムずらし";
-	LPCSTR information = "アイテムずらし 3.0.0 by 蛇色";
+	LPCSTR information = "アイテムずらし 3.0.1 by 蛇色";
 
 	static AviUtl::FilterPluginDLL filter =
 	{
