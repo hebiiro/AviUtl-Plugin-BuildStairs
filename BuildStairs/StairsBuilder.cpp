@@ -191,7 +191,7 @@ BOOL StairsBuilder::addMover(int objectIndex, ExEdit::Object* object, int frame_
 		}
 	}
 
-	if (frame_begin >= frame_end)
+	if (frame_begin > frame_end)
 		return FALSE;
 
 	m_moverMap[object] = Mover(objectIndex, object, frame_begin, frame_end);
@@ -246,10 +246,10 @@ int StairsBuilder::checkMoverMap()
 				frame_end = it->second.m_frame_end;
 			}
 
-			if (frame_end <= mover.m_frame_begin)
+			if (frame_end < mover.m_frame_begin)
 				continue; // object が mover より完全に前にあるのでスキップする。
 
-			if (mover.m_frame_end <= frame_begin)
+			if (mover.m_frame_end < frame_begin)
 				continue; // object が mover より完全に後ろにあるのでスキップする。
 
 			// object と mover は重なっている。
