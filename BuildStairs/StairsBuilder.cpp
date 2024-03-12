@@ -9,6 +9,24 @@ StairsBuilder::StairsBuilder(AviUtl::EditHandle* editp, AviUtl::FilterPlugin* fp
 	m_editp = editp;
 	m_fp = fp;
 	m_command = command;
+
+	// ファイル情報を取得します。
+	AviUtl::FileInfo fi = {};
+	fp->exfunc->get_file_info(editp, &fi);
+
+	// フレームレートを取得します。
+	if (fi.video_rate != 0 && fi.video_scale != 0)
+		fps = fi.video_rate / fi.video_scale;
+	MY_TRACE_INT(fps);
+
+	// BPMを取得します。
+	bpm = *(int32_t*)(g_auin.m_exedit + 0x00159190);
+	MY_TRACE_INT(bpm);
+
+	// 1区間当たりのフレーム数を取得します。
+	if (bpm != 0)
+		frame_per_time = fps / (bpm / 60.0 / 10000);
+	MY_TRACE_REAL(frame_per_time);
 }
 
 BOOL StairsBuilder::playVoice()
@@ -186,6 +204,13 @@ BOOL StairsBuilder::addMover(int objectIndex, ExEdit::Object* object, int frame_
 	case Check::SetEnd:
 		{
 			frame_end = currentFrame - 1;
+
+			break;
+		}
+	case Check::FixBPM:
+		{
+			frame_begin = fix_frame(frame_begin);
+			frame_end = fix_frame(frame_end + 1) - 1;
 
 			break;
 		}
@@ -749,6 +774,26 @@ BOOL StairsBuilder::deleteMidPt()
 	::InvalidateRect(g_auin.GetSettingDialog(), 0, FALSE);
 
 	return TRUE;
+}
+
+//
+// 選択アイテムのBPMずれを修正します。
+//
+BOOL StairsBuilder::fixBPM()
+{
+	MY_TRACE(_T("StairsBuilder::fixBPM(%d)\n"), m_command);
+
+	if (frame_per_time <= 0)
+	{
+		::MessageBox(m_fp->hwnd, _T("BPMが無効です"), _T("BuildStairs"), MB_OK | MB_ICONWARNING);
+		return FALSE;
+	}
+
+	// 移動予定アイテムを構築します。
+	createMoverMap();
+
+	// 実際にアイテムを移動します。
+	return applyMoverMap();
 }
 
 //--------------------------------------------------------------------

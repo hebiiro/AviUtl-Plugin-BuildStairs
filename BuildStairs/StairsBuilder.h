@@ -22,10 +22,24 @@ private:
 
 	std::map<ExEdit::Object*, Mover> m_moverMap;
 	std::vector<int> m_selectObjects;
+	int32_t fps = 0;
+	int32_t bpm = 0;
+	double frame_per_time = 0;
 
 public:
 
 	StairsBuilder(AviUtl::EditHandle* editp, AviUtl::FilterPlugin* fp, int command);
+
+	//
+	// 指定されたフレーム番号を修正して返します。
+	//
+	int32_t fix_frame(int32_t frame)
+	{
+		auto right_frame = frame_per_time;
+		auto wrong_frame = ceil(right_frame);
+
+		return (int32_t)ceil(frame * right_frame / wrong_frame);
+	}
 
 	BOOL playVoice();
 	BOOL getSelectObjects();
@@ -43,6 +57,7 @@ public:
 	BOOL setBegin();
 	BOOL setEnd();
 	BOOL deleteMidPt();
+	BOOL fixBPM();
 };
 
 //--------------------------------------------------------------------

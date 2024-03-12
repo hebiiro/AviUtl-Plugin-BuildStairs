@@ -1,6 +1,6 @@
 ﻿# AviUtl プラグイン - アイテムずらし
 
-タイムラインのアイテムをずらしたり整列したりします。
+タイムラインのアイテムをずらしたり整列したりします。<br>
 [最新バージョンをダウンロード](../../releases/latest/)
 
 ## 導入方法
@@ -58,6 +58,7 @@
 
 ## 更新履歴
 
+* 3.1.0 - 2024/03/13 BPMズレを修正する機能を追加
 * 3.0.2 - 2023/06/11 1 フレームのアイテムを動かせなかった問題を修正
 * 3.0.1 - 2023/02/21 WavPlayer が存在しないときにエラーメッセージが出ていた問題を修正
 * 3.0.0 - 2023/01/26 機能を整理
@@ -73,7 +74,7 @@
 ## 動作確認
 
 * (必須) AviUtl 1.10 & 拡張編集 0.92 http://spring-fragrance.mints.ne.jp/aviutl/
-* (共存確認) patch.aul r42 https://scrapbox.io/ePi5131/patch.aul
+* (共存確認) patch.aul r43 謎さうなフォーク版52 https://scrapbox.io/nazosauna/patch.aul
 
 ## クレジット
 
@@ -84,7 +85,7 @@
 * エリーミア（あらつち） https://artt.birchgame.org/blog/eliemia/
 
 ## 作成者情報
- 
+
 * 作成者 - 蛇色 (へびいろ)
 * GitHub - https://github.com/hebiiro
 * Twitter - https://twitter.com/io_hebiiro

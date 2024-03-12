@@ -17,6 +17,7 @@ BOOL func_init(AviUtl::FilterPlugin* fp)
 	fp->exfunc->add_menu_item(fp, "選択アイテムの左に伸ばす", fp->hwnd, Check::SetBegin, 0, AviUtl::ExFunc::AddMenuItemFlag::None);
 	fp->exfunc->add_menu_item(fp, "選択アイテムの右に伸ばす", fp->hwnd, Check::SetEnd, 0, AviUtl::ExFunc::AddMenuItemFlag::None);
 	fp->exfunc->add_menu_item(fp, "現在位置の近くにある中間点を削除", fp->hwnd, Check::DeleteMidPt, 0, AviUtl::ExFunc::AddMenuItemFlag::None);
+	fp->exfunc->add_menu_item(fp, "BPMズレを修正", fp->hwnd, Check::FixBPM, 0, AviUtl::ExFunc::AddMenuItemFlag::None);
 
 	return TRUE;
 }
@@ -84,14 +85,15 @@ LPCSTR check_name[] =
 	"選択アイテムを左に伸ばす",
 	"選択アイテムの右に伸ばす",
 	"現在位置の近くにある中間点を削除",
+	"BPMズレを修正",
 };
 
-int check_def[] = { -1, -1, -1, -1, -1, -1, -1, -1 };
+int check_def[] = { -1, -1, -1, -1, -1, -1, -1, -1, -1 };
 
 EXTERN_C AviUtl::FilterPluginDLL* WINAPI GetFilterTable()
 {
 	LPCSTR name = "アイテムずらし";
-	LPCSTR information = "アイテムずらし 3.0.2 by 蛇色";
+	LPCSTR information = "アイテムずらし 3.1.0 by 蛇色";
 
 	static AviUtl::FilterPluginDLL filter =
 	{
