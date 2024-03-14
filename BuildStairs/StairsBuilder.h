@@ -25,6 +25,7 @@ private:
 	int32_t fps = 0;
 	int32_t bpm = 0;
 	double frame_per_time = 0;
+	BOOL use_current_frame = FALSE;
 
 public:
 

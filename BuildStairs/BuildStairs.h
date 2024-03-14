@@ -18,6 +18,7 @@ struct Check
 	static const int32_t SetEnd = 6;
 	static const int32_t DeleteMidPt = 7;
 	static const int32_t FixBPM = 8;
+	static const int32_t UseCurrentFrame = 9;
 };
 
 //--------------------------------------------------------------------

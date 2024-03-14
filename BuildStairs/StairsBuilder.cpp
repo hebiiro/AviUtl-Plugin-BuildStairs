@@ -27,6 +27,9 @@ StairsBuilder::StairsBuilder(AviUtl::EditHandle* editp, AviUtl::FilterPlugin* fp
 	if (bpm != 0)
 		frame_per_time = fps / (bpm / 60.0 / 10000);
 	MY_TRACE_REAL(frame_per_time);
+
+	use_current_frame = !!fp->check[Check::UseCurrentFrame];
+	MY_TRACE_INT(use_current_frame);
 }
 
 BOOL StairsBuilder::playVoice()
@@ -168,6 +171,8 @@ BOOL StairsBuilder::createMoverMap()
 BOOL StairsBuilder::addMover(int objectIndex, ExEdit::Object* object, int frame_offset)
 {
 	int currentFrame = g_auin.GetExEditCurrentFrame();
+	int fixed_current_frame = fix_frame(currentFrame);
+	int diff_current_frame = currentFrame - fixed_current_frame;
 
 	int frame_begin = object->frame_begin;
 	int frame_end = object->frame_end;
@@ -209,8 +214,19 @@ BOOL StairsBuilder::addMover(int objectIndex, ExEdit::Object* object, int frame_
 		}
 	case Check::FixBPM:
 		{
-			frame_begin = fix_frame(frame_begin);
-			frame_end = fix_frame(frame_end + 1) - 1;
+			if (use_current_frame)
+			{
+				frame_begin += diff_current_frame;
+				frame_end += diff_current_frame;
+
+				frame_begin = fix_frame(frame_begin);
+				frame_end = fix_frame(frame_end + 1) - 1;
+			}
+			else
+			{
+				frame_begin = fix_frame(frame_begin);
+				frame_end = fix_frame(frame_end + 1) - 1;
+			}
 
 			break;
 		}
